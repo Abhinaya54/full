@@ -11,7 +11,7 @@ db = client["contact_manager"]
 contacts_col = db["contacts"]
 
 EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-PHONE_RE = re.compile(r"^\\+?[1-9]\\d{6,14}$")
+PHONE_RE = re.compile(r"^[6-9]\d{9}$")
 
 def now():
     return datetime.now(timezone.utc).strftime("%d %b %Y, %I:%M %p")
