@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-from pymongo import MongoClient
+from flask import Flask, render_template, request, jsonify, redirect, url_for\nimport os\nfrom pymongo import MongoClient
 from datetime import datetime, timezone
 import re
 
 app = Flask(__name__)
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient(os.getenv("MONGO_URI", "mongodb+srv://abhinayapulagam_db_user:69Gm5TSVTfyadmC3@cluster0.xxyzbss.mongodb.net/?appName=Cluster0"))
 db = client["contact_manager"]
 contacts_col = db["contacts"]
 
