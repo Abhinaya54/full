@@ -210,5 +210,4 @@ def api_stats():
     return jsonify({"total": contacts_col.count_documents({})})
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+handler = app\n\nif __name__ == "__main__":\n    app.run(debug=True)
