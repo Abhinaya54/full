@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for\nimport os\nfrom pymongo import MongoClient
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+import os
+from pymongo import MongoClient
 from datetime import datetime, timezone
 import re
 
@@ -8,13 +10,11 @@ client = MongoClient(os.getenv("MONGO_URI", "mongodb+srv://abhinayapulagam_db_us
 db = client["contact_manager"]
 contacts_col = db["contacts"]
 
-EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
-PHONE_RE = re.compile(r"^\+?[1-9]\d{6,14}$")
-
+EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+PHONE_RE = re.compile(r"^\\+?[1-9]\\d{6,14}$")
 
 def now():
     return datetime.now(timezone.utc).strftime("%d %b %Y, %I:%M %p")
-
 
 def next_id():
     last = contacts_col.find_one({}, sort=[("_id", -1)])
@@ -22,7 +22,6 @@ def next_id():
         return "C001"
     n = int(last["contact_id"][1:]) + 1
     return f"C{n:03d}"
-
 
 def validate(first_name, last_name, email, phone, address):
     err = {}
@@ -39,7 +38,6 @@ def validate(first_name, last_name, email, phone, address):
     if not address: err["address"] = "Address is required."
     return err
 
-
 def make_filter(q):
     if not q:
         return {}
@@ -49,13 +47,7 @@ def make_filter(q):
         {"email": p}, {"phone": p}, {"address": p}
     ]}
 
-
 def check_duplicates(email, phone, skip_id=None):
-    """
-    Check if email or phone already exist in DB.
-    skip_id is used during edits so we don't flag the contact's own values.
-    Returns a dict of errors (empty = no duplicates found).
-    """
     err = {}
     email_query = {"email": email}
     phone_query = {"phone": phone}
@@ -65,10 +57,9 @@ def check_duplicates(email, phone, skip_id=None):
 
     if contacts_col.find_one(email_query):
         err["email"] = "This email is already registered. Please use a different one."
-    if contacts_col.find_one(phone_query):  # separate if — checks both regardless
+    if contacts_col.find_one(phone_query):
         err["phone"] = "This phone number already exists. Please use a different one."
     return err
-
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -88,7 +79,6 @@ def home():
 
         errors = validate(**form)
 
-        # only check duplicates if format is valid
         if not errors:
             errors = check_duplicates(form["email"], form["phone"])
 
@@ -99,7 +89,6 @@ def home():
     contacts = list(contacts_col.find(make_filter(q), {"_id": 0}))
     total = contacts_col.count_documents({})
     return render_template("index.html", contacts=contacts, total=total, errors=errors, form=form, message=msg, q=q)
-
 
 @app.route("/edit/<contact_id>", methods=["GET", "POST"])
 def edit_contact(contact_id):
@@ -123,7 +112,6 @@ def edit_contact(contact_id):
         errors = validate(**form)
 
         if not errors:
-            # pass skip_id so it won't flag the contact's own email/phone as duplicate
             errors = check_duplicates(form["email"], form["phone"], skip_id=contact_id)
 
         if not errors:
@@ -134,20 +122,15 @@ def edit_contact(contact_id):
     total = contacts_col.count_documents({})
     return render_template("index.html", contacts=contacts, total=total, errors=errors, form=form, edit=contact, message=None, q=q)
 
-
 @app.route("/delete/<contact_id>", methods=["POST"])
 def delete_contact(contact_id):
     q = request.args.get("q", "").strip()
     result = contacts_col.delete_one({"contact_id": contact_id})
     return redirect(url_for("home", q=q, success="deleted" if result.deleted_count else None))
 
-
-# ── JSON API ─────────────────────────────────────────────
-
 @app.route("/api/contacts", methods=["GET"])
 def api_get_contacts():
     return jsonify(list(contacts_col.find({}, {"_id": 0})))
-
 
 @app.route("/api/contacts", methods=["POST"])
 def api_add_contact():
@@ -173,7 +156,6 @@ def api_add_contact():
     doc.pop("_id", None)
     return jsonify({"ok": True, "contact": doc}), 201
 
-
 @app.route("/api/contacts/<contact_id>", methods=["PUT"])
 def api_update_contact(contact_id):
     d = request.get_json()
@@ -196,7 +178,6 @@ def api_update_contact(contact_id):
     contacts_col.update_one({"contact_id": contact_id}, {"$set": {**fields, "updated_at": now()}})
     return jsonify({"ok": True})
 
-
 @app.route("/api/contacts/<contact_id>", methods=["DELETE"])
 def api_delete_contact(contact_id):
     result = contacts_col.delete_one({"contact_id": contact_id})
@@ -204,10 +185,9 @@ def api_delete_contact(contact_id):
         return jsonify({"ok": False, "message": "Contact not found."}), 404
     return jsonify({"ok": True})
 
-
 @app.route("/api/stats")
 def api_stats():
     return jsonify({"total": contacts_col.count_documents({})})
 
-
-handler = app\n\nif __name__ == "__main__":\n    app.run(debug=True)
+# For Vercel Python runtime
+app
